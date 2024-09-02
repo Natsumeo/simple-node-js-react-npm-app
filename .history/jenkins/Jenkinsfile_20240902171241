@@ -4,9 +4,9 @@ pipeline {
         CI = 'true'
     }
     stages {
-        stage('Install Dependencies') {
+         stage('Install Dependencies') {
             steps {
-                container('node:18') {  // 使用 Node.js 18 的 Docker 镜像
+                container('node:14') {  // 使用 Node.js 14 的 Docker 镜像
                     sh 'npm install'
                 }
             }
