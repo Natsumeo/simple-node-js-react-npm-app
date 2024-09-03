@@ -6,7 +6,7 @@ pipeline {
     stages {
         stage('Install Dependencies') {
             steps {
-                container('node-latest') {  // 使用 Node.js 18 的 Docker 镜像
+                container('node:18') {  // 使用 Node.js 18 的 Docker 镜像
                     sh 'npm install'
                 }
             }
