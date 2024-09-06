@@ -6,7 +6,7 @@ pipeline {
     }
     parameters {
         string(name: 'version', defaultValue: '', description: 'Specify the build number to roll back to.')
-        choice(name: 'deploy_enviroment', choices:['deploy', 'rollback'], description: 'Specify the deployment environment (deploy or rollback).')
+        choice(name: 'deploy_enviroment',choices:['deploy','rollback'],description: 'Specify the deployment environment (deploy or rollback).')
     }
     stages {
         stage('Build') {
@@ -23,7 +23,7 @@ pipeline {
         }
         stage('Deploy') {
             when {
-                expression { return params.deploy_environment == 'deploy' }
+              expression { return params.deploy_environment == 'deploy' }
             }
             steps {
                 script {
@@ -37,22 +37,24 @@ pipeline {
                         target: './deployed-artifacts'
 
                     if (downloadResult.status == 'SUCCESS') {
-                        echo '下载构建产物成功'
-
-                        // 确保目标目录存在
-                        sh 'mkdir -p deployed-artifacts'
-
-                        // 将构建产物复制到Nginx容器
-                        docker cp . / deployed-artifacts / . ${ NGINX_CONTAINER_NAME } / usr / share / nginx / html /
-
-                        // 重新加载Nginx
-                        docker exec -i ${ NGINX_CONTAINER_NAME } nginx -s reload
-
-                        echo '部署完成'
-                    } else {
-                        error '无法下载构建产物'
-                    }
+                    echo "下载构建产物成功"
+                        
+                    // 确保目标目录存在
+                    sh 'mkdir -p deployed-artifacts'
+                        
+                    // 将构建产物复制到Nginx容器
+                    docker cp ./deployed-artifacts/. ${NGINX_CONTAINER_NAME}/usr/share/nginx/html/
+                        
+                    // 重新加载Nginx
+                    docker exec -i ${NGINX_CONTAINER_NAME} nginx -s reload
+                        
+                    echo "部署完成"
+                } else {
+                    error "无法下载构建产物"
                 }
+                }
+
+                
             }
         }
         stage('Rollback') {
@@ -62,7 +64,7 @@ pipeline {
             steps {
                 script {
                     def rollbackVersion = parameters.version.toInteger()
-                    if (rollbackVersion != null) {
+                    if(rollbackVersion !=null){
                         echo "开始回滚至构建编号：${rollbackVersion}"
 
                         // 下载对应构建编号的构建产物
@@ -70,22 +72,22 @@ pipeline {
                             patterns: ['dist/*'],
                             target: './deployed-artifacts'
 
-                        if (downloadResult.status == 'SUCCESS') {
-                            echo '下载构建产物成功'
+                        if(downloadResult.status == 'SUCCESS'){
+                            echo "下载构建产物成功"
 
                             // 确保目标目录存在
                             sh 'mkdir -p deployed-artifacts'
 
                             // 将构建产物复制到Nginx容器
-                            docker cp . / deployed-artifacts / . ${ NGINX_CONTAINER_NAME } / usr / share / nginx / html /
-
+                            docker cp ./deployed-artifacts/. ${NGINX_CONTAINER_NAME}/usr/share/nginx/html/
+                            
                             // 重新加载Nginx
-                            docker exec -i ${ NGINX_CONTAINER_NAME } nginx -s reload
+                            docker exec -i ${NGINX_CONTAINER_NAME} nginx -s reload
 
-                            echo '回滚完成'
-                        }else {
-                            error '无法下载构建产物'
-                        }
+                            echo "回滚完成"
+                        }else{
+                            error "无法下载构建产物"
+                        }  
                     }
                 }
             }

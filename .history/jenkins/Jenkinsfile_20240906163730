@@ -1,0 +1,94 @@
+pipeline {
+    agent any
+    environment {
+        CI = 'true'
+        NGINX_CONTAINER_NAME = 'nginx-lts'
+    }
+    parameters {
+        string(name: 'version', defaultValue: '', description: 'Specify the build number to roll back to.')
+        choice(name: 'deploy_enviroment',choices:['deploy','rollback'],description: 'Specify the deployment environment (deploy or rollback).')
+    }
+    stages {
+        stage('Build') {
+            steps {
+                echo 'Building frontend application...'
+                sh 'npm install && npm run build'
+            }
+            post {
+                success {
+                    echo 'Archiving artifacts..'
+                    archiveArtifacts allowEmptyArchive: true, artifacts: 'dist/*', fingerprint: true
+                }
+            }
+        }
+        stage('Deploy') {
+            when {
+              expression { return params.deploy_environment == 'deploy' }
+            }
+            steps {
+                script {
+                // 获取当前构建的构建编号
+                def currentBuildNumber = env.BUILD_NUMBER
+                echo "当前构建编号: ${currentBuildNumber}"
+
+                // 下载当前构建的产物
+                def downloadResult = download previousBuild: false, buildNumber: "${currentBuildNumber}",
+                    patterns: ['dist/*'],
+                    target: './deployed-artifacts'
+                }
+
+                if (downloadResult.status == 'SUCCESS') {
+                    echo "下载构建产物成功"
+                        
+                    // 确保目标目录存在
+                    sh 'mkdir -p deployed-artifacts'
+                        
+                    // 将构建产物复制到Nginx容器
+                    docker cp ./deployed-artifacts/. ${NGINX_CONTAINER_NAME}/usr/share/nginx/html/
+                        
+                    // 重新加载Nginx
+                    docker exec -i ${NGINX_CONTAINER_NAME} nginx -s reload
+                        
+                    echo "部署完成"
+                } else {
+                    error "无法下载构建产物"
+                }
+            }
+        }
+        stage('Rollback') {
+            when {
+                expression { return params.deploy_environment == 'rollback' && parameters.version != '' }
+            }
+            steps {
+                script {
+                    def rollbackVersion = parameters.version.toInteger()
+                    if(rollbackVersion !=null){
+                        echo "开始回滚至构建编号：${rollbackVersion}"
+
+                        // 下载对应构建编号的构建产物
+                        def downloadResult = download previousBuild: true, buildNumber: "${rollbackVersion}",
+                            patterns: ['dist/*'],
+                            target: './deployed-artifacts'
+
+                        if(downloadResult.status == 'SUCCESS'){
+                            echo "下载构建产物成功"
+
+                            // 确保目标目录存在
+                            sh 'mkdir -p deployed-artifacts'
+
+                            // 将构建产物复制到Nginx容器
+                            docker cp ./deployed-artifacts/. ${NGINX_CONTAINER_NAME}/usr/share/nginx/html/
+                            
+                            // 重新加载Nginx
+                            docker exec -i ${NGINX_CONTAINER_NAME} nginx -s reload
+
+                            echo "回滚完成"
+                        }else{
+                            error "无法下载构建产物"
+                        }  
+                    }
+                }
+            }
+        }
+    }
+}
