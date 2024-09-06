@@ -38,13 +38,6 @@ pipeline {
                         def downloadResult = download previousBuild: true, buildNumber: "${rollbackVersion}",
                             patterns: ['dist/*'],
                             target: './deployed-artifacts'
-
-                        if(downloadResult.status = 'SUCCESS'){
-                            echo "下载构建产物成功"
-
-                            // 部署构建产物
-                            //  sh "cp -r ./deployed-artifacts/* /path/to/deploy/ && nginx -s reload"
-                        }    
                     }
                 }
             }

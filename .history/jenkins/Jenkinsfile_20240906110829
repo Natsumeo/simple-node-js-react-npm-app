@@ -43,7 +43,7 @@ pipeline {
                             echo "下载构建产物成功"
 
                             // 部署构建产物
-                            //  sh "cp -r ./deployed-artifacts/* /path/to/deploy/ && nginx -s reload"
+                            sh "cp -r ./deployed-artifacts/* /path/to/deploy/ && nginx -s reload"
                         }    
                     }
                 }

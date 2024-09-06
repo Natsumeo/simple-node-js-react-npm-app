@@ -1,0 +1,40 @@
+pipeline {
+    agent any
+    environment {
+        CI = 'true'
+    }
+    parameters {
+        string(name: 'version', defaultValue: '', description: 'Specify the build number to roll back to.')
+    }
+    stages {
+        stage('Build') {
+            steps {
+                sh 'npm install'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                sh './jenkins/scripts/deploy.sh'
+                input message: 'Finished using the web site? (Click "Proceed" to continue)'
+                sh './jenkins/scripts/kill.sh'
+            }
+        }
+        stage('Rollback') {
+            when {
+                expression { return version != '' }
+            }
+            steps {
+                script {
+                    def rollbackBuild = env.version.toInteger()
+                    if(rollbackBuild !=null  && rollbackBuild != version){
+                        echo "Rolling back to build #${rollbackBuild}"
+                        // 获取指定构建的Git提交信息
+                        def commitHash = sh(script: "curl -s -u \":\$JENKINS_API_TOKEN\" http://localhost:8080/job/simple-node-js-react-npm-app/api/json?tree=builds[number,actions[parameters[name,value]]] | jq -r '.builds[] | select(.number == ${rollbackBuild}) | .actions[].parameters[] | select(.name == \"GIT_COMMIT\") | .value'", returnStdout: true).trim()
+                        if
+                    }
+
+                }
+            }
+        }
+    }
+}

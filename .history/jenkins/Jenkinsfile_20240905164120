@@ -1,0 +1,23 @@
+pipeline {
+    agent any
+    environment {
+        CI = 'true'
+    }
+    parameters {
+        string(name: 'version', defaultValue: '', description: 'Specify the build number to roll back to.')
+    }
+    stages {
+        stage('Build') {
+            steps {
+                sh 'npm install'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                sh './jenkins/scripts/deploy.sh'
+                input message: 'Finished using the web site? (Click "Proceed" to continue)'
+                sh './jenkins/scripts/kill.sh'
+            }
+        }
+    }
+}

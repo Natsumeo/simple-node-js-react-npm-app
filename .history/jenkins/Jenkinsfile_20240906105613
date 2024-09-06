@@ -27,24 +27,14 @@ pipeline {
         stage('Rollback') {
             when {
                 expression { return parameters.version != '' }
-            }
             steps {
                 script {
-                    def rollbackVersion = parameters.version.toInteger()
-                    if(rollbackVersion !=null){
-                        echo "开始回滚至构建编号：${rollbackVersion}"
-
-                        // 下载对应构建编号的构建产物
-                        def downloadResult = download previousBuild: true, buildNumber: "${rollbackVersion}",
-                            patterns: ['dist/*'],
-                            target: './deployed-artifacts'
-
-                        if(downloadResult.status = 'SUCCESS'){
-                            echo "下载构建产物成功"
-
-                            // 部署构建产物
-                            //  sh "cp -r ./deployed-artifacts/* /path/to/deploy/ && nginx -s reload"
-                        }    
+                    def rollbackBuild = env.version.toInteger()
+                    if(rollbackBuild !=null  && rollbackBuild != version){
+                        echo "Rolling back to build #${rollbackBuild}"
+                        // 获取指定构建的Git提交信息
+                        def commitHash = sh(script: "curl -s -u \":\$JENKINS_API_TOKEN\" http://localhost:8080/job/simple-node-js-react-npm-app/api/json?tree=builds[number,actions[parameters[name,value]]] | jq -r '.builds[] | select(.number == ${rollbackBuild}) | .actions[].parameters[] | select(.name == \"GIT_COMMIT\") | .value'", returnStdout: true).trim()
+                        if
                     }
                 }
             }
