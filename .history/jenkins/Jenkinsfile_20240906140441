@@ -1,0 +1,64 @@
+pipeline {
+    agent any
+    environment {
+        CI = 'true'
+        NGINX_CONTAINER_NAME = 'nginx-lts'
+    }
+    parameters {
+        string(name: 'version', defaultValue: '', description: 'Specify the build number to roll back to.')
+        choice(name: 'deploy_enviroment',choice:['deploy','rollback'],description: 'Specify the deployment environment (deploy or rollback).')
+    }
+    stages {
+        stage('Build') {
+            steps {
+                echo 'Building frontend application...'
+                sh 'npm install && npm run build'
+            }
+            post {
+                success {
+                    echo 'Building frontend application...'
+                    archiveArtifacts allowEmptyArchive: true, artifacts: 'dist/*', fingerprint: true
+                }
+            }
+        }
+        stage('Deploy') {
+            when {
+                expression { return params.deploy_environment == 'deploy' }
+            }
+            steps {
+                script {
+
+                }
+                // sh './jenkins/scripts/deploy.sh'
+                // input message: 'Finished using the web site? (Click "Proceed" to continue)'
+                // sh './jenkins/scripts/kill.sh'
+            }
+        }
+        stage('Rollback') {
+            when {
+                expression { return params.deploy_environment == 'rollback' && parameters.version != '' }
+            }
+            steps {
+                // 可封装
+                script {
+                    def rollbackVersion = parameters.version.toInteger()
+                    if(rollbackVersion !=null){
+                        echo "开始回滚至构建编号：${rollbackVersion}"
+
+                        // 下载对应构建编号的构建产物
+                        def downloadResult = download previousBuild: true, buildNumber: "${rollbackVersion}",
+                            patterns: ['dist/*'],
+                            target: './deployed-artifacts'
+
+                        if(downloadResult.status = 'SUCCESS'){
+                            echo "下载构建产物成功"
+
+                            // 部署构建产物
+                            //  sh "cp -r ./deployed-artifacts/* /path/to/deploy/ && nginx -s reload"
+                        }    
+                    }
+                }
+            }
+        }
+    }
+}

@@ -60,6 +60,7 @@ pipeline {
                 expression { return params.deploy_environment == 'rollback' && parameters.version != '' }
             }
             steps {
+                // 可封装
                 script {
                     def rollbackVersion = parameters.version.toInteger()
                     if(rollbackVersion !=null){

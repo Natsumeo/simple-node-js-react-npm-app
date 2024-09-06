@@ -54,12 +54,14 @@ pipeline {
                     error "无法下载构建产物"
                 }
             }
+          }
         }
         stage('Rollback') {
             when {
                 expression { return params.deploy_environment == 'rollback' && parameters.version != '' }
             }
             steps {
+                // 可封装
                 script {
                     def rollbackVersion = parameters.version.toInteger()
                     if(rollbackVersion !=null){

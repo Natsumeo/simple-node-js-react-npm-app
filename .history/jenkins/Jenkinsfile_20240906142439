@@ -54,12 +54,14 @@ pipeline {
                     error "无法下载构建产物"
                 }
             }
+          }
         }
         stage('Rollback') {
             when {
                 expression { return params.deploy_environment == 'rollback' && parameters.version != '' }
             }
             steps {
+                // 可封装
                 script {
                     def rollbackVersion = parameters.version.toInteger()
                     if(rollbackVersion !=null){
@@ -76,16 +78,9 @@ pipeline {
                             // 确保目标目录存在
                             sh 'mkdir -p deployed-artifacts'
 
-                            // 将构建产物复制到Nginx容器
-                            docker cp ./deployed-artifacts/. ${NGINX_CONTAINER_NAME}:/usr/share/nginx/html/
-                            
-                            // 重新加载Nginx
-                            docker exec -i ${NGINX_CONTAINER_NAME} nginx -s reload
-
-                            echo "回滚完成"
-                        }else{
-                            error "无法下载构建产物"
-                        }  
+                            // 部署构建产物
+                            //  sh "cp -r ./deployed-artifacts/* /path/to/deploy/ && nginx -s reload"
+                        }    
                     }
                 }
             }
