@@ -9,6 +9,13 @@ pipeline {
         choice(name: 'deploy_enviroment', choices:['deploy', 'rollback'], description: 'Specify the deployment environment (deploy or rollback).')
     }
     stages {
+        // stage('Check Environment') {
+        //     steps {
+        //         script {
+        //             sh 'echo $PATH'
+        //         }
+        //     }
+        // }
         stage('Build') {
             steps {
                 echo 'Building frontend application...'
